@@ -3,6 +3,8 @@ const express = require("express");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
 require("dotenv").config();
+const pdf = require("pdfkit");
+const fs = require("fs");
 
 const app = express();
 app.use(cors());
@@ -107,7 +109,7 @@ app.post("/send-bulk-email", async (req, res) => {
         `Dear ${user_name},\n\n` +
         `We regret to inform you that your application for ${job} at ${company_name} ` +
         `has not passed the current stage.\n\n` +
-        `Best regards,\n${company_name} Team\n` + 
+        `Best regards,\n${company_name} Team\n` +
         `${company_email}`;
     } else {
       subject = `Application Update for ${job} at ${company_name}`;
@@ -115,7 +117,7 @@ app.post("/send-bulk-email", async (req, res) => {
         `Dear ${user_name},\n\n` +
         `Your application for ${job} at ${company_name} ` +
         `has moved to the next stage: ${status_text}.\n\n` +
-        `Best regards,\n${company_name} Team\n` + 
+        `Best regards,\n${company_name} Team\n` +
         `${company_email}`;
     }
 
@@ -180,10 +182,154 @@ app.post("/send_recommendation", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error("Failed to send recommendation email:", err);
-    res.status(500).json({ success: false, message: "Recommendation email failed" });
+    res
+      .status(500)
+      .json({ success: false, message: "Recommendation email failed" });
   }
 });
 
+app.post("/send-contract", async (req, res) => {
+  const {
+    user_email,
+    user_name,
+    job_title,
+    job_attendance,
+    job_type,
+    company_name,
+    company_email,
+    salary,
+    insurance,
+    termination,
+  } = req.body;
+
+  let mailOptions;
+
+  const doc = new pdf();
+  const stream = doc.pipe(fs.createWriteStream(`${user_name} contract.pdf`));
+
+  // Header
+  doc.fontSize(30).font("Helvetica-Bold").text(`${company_name}`, {
+    align: "center",
+  });
+  doc.moveDown(0.5);
+  doc
+    .fontSize(18)
+    .font("Helvetica")
+    .text("Employment Contract", { align: "center" });
+  doc.moveDown(1);
+
+  // Intro / Company Environment
+  doc
+    .fontSize(12)
+    .text(
+      `We are pleased to offer you a position at ${company_name}, a company known for innovation, inclusivity, and fostering professional growth. Our team thrives in a collaborative environment with modern tools, flexible work policies, and a commitment to employee well-being.`,
+      {
+        align: "justify",
+        indent: 20,
+        lineGap: 6,
+        paragraphGap: 10,
+        width: 450,
+      }
+    );
+
+  // Contract Details
+  doc.moveDown(1);
+  doc.fontSize(14).font("Helvetica-Bold").text("Contract Details:");
+  doc.moveDown(0.5);
+
+  doc.font("Helvetica").fontSize(12);
+  doc.text(`Job Title: ${job_title}`);
+  doc.text(`Attendance: ${job_attendance}`);
+  doc.text(`Type: ${job_type}`);
+  doc.text(`Salary: ${salary}`);
+  doc.text(`Insurance Coverage: ${insurance}`);
+  doc.text(
+    `Termination Clause: ${
+      termination === "0 months"
+        ? "N/A"
+        : termination +
+          " (" +
+          parseInt(termination.split(" ")[0]) *
+            parseInt(salary.split(" ")[0].replace(/,/g, "")) +
+          " " +
+          salary.split(" ")[1] +
+          ")"
+    }`
+  );
+  
+  doc.moveDown(1);
+  doc.fontSize(14).font("Helvetica-Bold").text("Terms and Legal Agreements:");
+  
+  doc.moveDown(0.5);
+  doc
+    .font("Helvetica")
+    .fontSize(12)
+    .text(
+      `By signing this contract, you agree to the following terms and conditions:`
+    )
+    .moveDown(0.1)
+    .text(
+      `1- This agreement is governed by and construed in accordance with the laws of Egypt.`
+    )
+    .moveDown(0.1)
+    .text(
+      `2- This agreement constitutes the entire agreement between the parties and supersedes all prior or contemporaneous agreements or understandings, whether written or oral.`
+    )
+    .moveDown(0.1)
+    .text(
+      `3- This agreement may not be amended or modified except in writing signed by both parties.`
+    )
+    .moveDown(0.1)
+    .text(
+      `4- Confidentiality: The applicant acknowledges that all information shared during the interview process, including but not limited to the company's business operations, financial data, marketing strategies, and any other sensitive information, is confidential and shall not be disclosed to any third party.`
+    )
+    .moveDown(0.1)
+    .text(
+      `5- Non-Compete: The employee agrees not to work for any company that competes with ${company_name} or engage in any business activity that may be detrimental to the company's interests during the term of employment and for a period of six months after termination of employment.`
+    );
+
+  // Signatures
+  doc.moveDown(1);
+  doc.font("Helvetica-Bold").text("Signatures", { underline: true });
+
+  const signatureY = doc.y + 20; // Add spacing from previous content
+
+  doc
+    .font("Helvetica")
+    .text("__________________________", 100, signatureY)
+    .text("Applicant Signature", 100, signatureY + 15)
+    .text("__________________________", 350, signatureY)
+    .text("Company Representative", 350, signatureY + 15);
+
+  doc.end();
+
+  stream.on("finish", async () => {
+    mailOptions = {
+      from: `"${company_name} HR Team" <${company_email}>`,
+      to: user_email,
+      subject: `Job Contract: ${job_title}`,
+      text: `Dear ${user_name},\n\nPlease find the job contract for ${job_title} at ${company_name} attached.\n\nPlease sign and return one copy to us by email.\n\nBest regards,\n${company_name} HR Team\n${company_email}`,
+      attachments: [
+        {
+          filename: `${user_name} contract.pdf`,
+          path: `${user_name} contract.pdf`,
+          contentType: "application/pdf",
+        },
+      ],
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      fs.unlinkSync(`${user_name} contract.pdf`);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Failed to send contract email:", err);
+      res
+        .status(500)
+        .json({ success: false, message: "Contract email failed" });
+    }
+  });
+});
 // Start server
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Mailer server running on port ${PORT}`));

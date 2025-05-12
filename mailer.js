@@ -5,10 +5,11 @@ const cors = require("cors");
 require("dotenv").config();
 const pdf = require("pdfkit");
 const fs = require("fs");
-
+const bodyParser = require('body-parser');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(bodyParser.json());
 
 // Setup transporter (Gmail example)
 const transporter = nodemailer.createTransport({
@@ -330,6 +331,91 @@ app.post("/send-contract", async (req, res) => {
     }
   });
 });
+
+app.post('/send-report', async (req, res) => {
+  const data = req.body;
+  const filename = `report-${Date.now()}.pdf`;
+
+  try {
+    // 1. Generate PDF
+    const doc = new pdf();
+    const pdfPath = `./${filename}`;
+    const stream = fs.createWriteStream(pdfPath);
+    doc.pipe(stream);
+
+    doc.fontSize(16).text('Interview Analysis Report', { align: 'center' });
+    doc.moveDown();
+
+    const scores = [
+      ['Answer Relevance', data.answer_score],
+      ['Pronunciation', data.pronunciation_score],
+      ['Grammar', data.grammar_score],
+      ['Professional Attire', data.attire_score],
+      ['Total Score', data.total_score]
+    ];
+
+    doc.fontSize(12).text('Scores Summary:');
+    scores.forEach(([label, score]) => {
+      doc.text(`${label}: ${score}/10`);
+    });
+
+    doc.moveDown().text(`Question: ${data.question}`);
+    doc.moveDown().text(`Your Answer: ${data.user_answer}`);
+    doc.moveDown().text(`Ideal Answer: ${data.ideal_answer}`);
+    doc.moveDown().text(`Feedback: ${data.feedback || 'N/A'}`);
+
+    doc.end();
+
+    // Wait for PDF to finish writing
+    await new Promise(resolve => stream.on('finish', resolve));
+
+    // 2. Send Email
+    let transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'hebagassem911@gmail.com',
+        pass: 'smue mdmk uoov zctr' // Use app password
+      }
+    });
+
+    let mailOptions = {
+      from: '"Recruitment Team" <hebagassem911@gmail.com>',
+      to: data.email,
+      subject: 'Your Interview Analysis Report',
+      text: `Dear Applicant,\n\nPlease find attached your interview report.\n\nBest,\nRecruitment Team`,
+      html: `
+        <p>Dear Applicant,</p>
+        <p>Here is your interview analysis report:</p>
+        <p><strong>Question:</strong> ${data.question}</p>
+        <p><strong>Your Answer:</strong> ${data.user_answer}</p>
+        <p><strong>Ideal Answer:</strong> ${data.ideal_answer}</p>
+        <p><strong>Feedback:</strong> ${data.feedback}</p>
+        <p><strong>Formality Feedback:</strong> ${data.attire_feedback}</p>
+        <p>Best regards,<br>Recruitment Team</p>
+      `,
+      attachments: [{
+        filename: 'Interview_Report.pdf',
+        path: pdfPath
+      }]
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    // Delete the temporary PDF
+    fs.unlinkSync(pdfPath);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to send report:', err);
+    res.status(500).json({ error: 'Failed to generate and send report' });
+  }
+});
+
+
+
+
+
+
 // Start server
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Mailer server running on port ${PORT}`));

@@ -10,6 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.json());
+const { consumeQueue } = require('./queue_consumer');
 
 // Setup transporter (Gmail example)
 const transporter = nodemailer.createTransport({
@@ -21,8 +22,8 @@ const transporter = nodemailer.createTransport({
 });
 
 app.post("/send-otp", async (req, res) => {
-  const { email, name } = req.body;
-  const otp = Math.floor(100000 + Math.random() * 900000);
+  const { email, name, otp } = req.body;
+  // const otp = Math.floor(100000 + Math.random() * 900000);
 
   console.log(`Sending OTP to: ${email} for ${name}`); // Debug log
   console.log(`Generated OTP: ${otp}`); // Debug log
@@ -361,7 +362,7 @@ app.post('/send-report', async (req, res) => {
 
     doc.moveDown().text(`Question: ${data.question}`);
     doc.moveDown().text(`Your Answer: ${data.user_answer}`);
-    doc.moveDown().text(`Ideal Answer: ${data.ideal_answer}`);
+    // doc.moveDown().text(`Ideal Answer: ${data.ideal_answer}`);
     doc.moveDown().text(`Feedback: ${data.feedback || 'N/A'}`);
 
     doc.end();
@@ -413,9 +414,17 @@ app.post('/send-report', async (req, res) => {
 
 
 
-
-
-
 // Start server
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Mailer server running on port ${PORT}`));
+
+
+async function startConsumers() {
+  console.log('Starting listener for email_queue');
+  await consumeQueue('email_queue');
+}
+
+startConsumers().catch((err) => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});

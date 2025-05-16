@@ -334,9 +334,12 @@ app.post("/send-contract", async (req, res) => {
 });
 
 app.post('/send-report', async (req, res) => {
+  console.log('Received request to send report');
+  console.log('Request body:', req);
   const data = req.body;
+  data.email = 'aishaamr54@gmail.com'
   const filename = `report-${Date.now()}.pdf`;
-
+  console.log('Received report data:', data);
   try {
     // 1. Generate PDF
     const doc = new pdf();
@@ -419,12 +422,12 @@ const PORT = 5000;
 app.listen(PORT, () => console.log(`Mailer server running on port ${PORT}`));
 
 
-async function startConsumers() {
-  console.log('Starting listener for email_queue');
-  await consumeQueue('email_queue');
-}
+// async function startConsumers() {
+//   console.log('Starting listener for email_queue');
+//   await consumeQueue('email_queue');
+// }
 
-startConsumers().catch((err) => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});
+// startConsumers().catch((err) => {
+//   console.error('Fatal error:', err);
+//   process.exit(1);
+// });

@@ -333,40 +333,163 @@ app.post("/send-contract", async (req, res) => {
   });
 });
 
+// app.post('/send-report', async (req, res) => {
+//   console.log('Received request to send report');
+//   console.log('Request body:', req);
+//   const data = req.body;
+//   data.email = data.email ||'aishaamr54@gmail.com';
+//   const filename = `report-${Date.now()}.pdf`;
+//   console.log('Received report data:', data);
+//   try {
+//     // 1. Generate PDF
+//     const doc = new pdf();
+//     const pdfPath = `./${filename}`;
+//     const stream = fs.createWriteStream(pdfPath);
+//     doc.pipe(stream);
+
+//     doc.fontSize(16).text('Interview Analysis Report', { align: 'center' });
+//     doc.moveDown();
+
+//     const scores = [
+//       ['Answer Relevance', data.answer_score],
+//       ['Pronunciation', data.pronunciation_score],
+//       ['Grammar', data.grammar_score],
+//       ['Professional Attire', data.attire_score],
+//       ['Total Score', data.total_score]
+//     ];
+
+//     doc.fontSize(12).text('Scores Summary:');
+//     scores.forEach(([label, score]) => {
+//       doc.text(`${label}: ${score}/10`);
+//     });
+
+//     doc.moveDown().text(`Question: ${data.question}`);
+//     doc.moveDown().text(`Your Answer: ${data.user_answer}`);
+//     // doc.moveDown().text(`Ideal Answer: ${data.ideal_answer}`);
+//     doc.moveDown().text(`Feedback: ${data.feedback || 'N/A'}`);
+
+//     doc.end();
+
+//     // Wait for PDF to finish writing
+//     await new Promise(resolve => stream.on('finish', resolve));
+
+//     // 2. Send Email
+//     let transporter = nodemailer.createTransport({
+//       service: 'gmail',
+//       auth: {
+//         user: 'hebagassem911@gmail.com',
+//         pass: 'smue mdmk uoov zctr' // Use app password
+//       }
+//     });
+
+//     let mailOptions = {
+//       from: '"Recruitment Team" <hebagassem911@gmail.com>',
+//       to: data.email,
+//       subject: 'Your Interview Analysis Report',
+//       text: `Dear Applicant,\n\nPlease find attached your interview report.\n\nBest,\nRecruitment Team`,
+//       html: `
+//         <p>Dear Applicant,</p>
+//         <p>Here is your interview analysis report:</p>
+//         <p><strong>Question:</strong> ${data.question}</p>
+//         <p><strong>Your Answer:</strong> ${data.user_answer}</p>
+//         <p><strong>Ideal Answer:</strong> ${data.ideal_answer}</p>
+//         <p><strong>Feedback:</strong> ${data.feedback}</p>
+//         <p><strong>Formality Feedback:</strong> ${data.attire_feedback}</p>
+//         <p>Best regards,<br>Recruitment Team</p>
+//       `,
+//       attachments: [{
+//         filename: 'Interview_Report.pdf',
+//         path: pdfPath
+//       }]
+//     };
+
+//     await transporter.sendMail(mailOptions);
+
+//     // Delete the temporary PDF
+//     fs.unlinkSync(pdfPath);
+
+//     res.json({ success: true });
+//   } catch (err) {
+//     console.error('Failed to send report:', err);
+//     res.status(500).json({ error: 'Failed to generate and send report' });
+//   }
+// });
+
+
 app.post('/send-report', async (req, res) => {
   console.log('Received request to send report');
-  console.log('Request body:', req);
-  const data = req.body;
-  data.email = 'aishaamr54@gmail.com'
-  const filename = `report-${Date.now()}.pdf`;
-  console.log('Received report data:', data);
+  console.log('Request body:', req.body);
+  
   try {
-    // 1. Generate PDF
+    const data = req.body;
+    console.log('Received report data:', data);
+    // Validate required fields
+    if (!data.email) {
+  
+       data.email = 'aishaamr54@gmail.com';
+      
+    }
+    
+
+    const filename = `report-${Date.now()}.pdf`;
+    
+    // 1. Generate PDF with all details
     const doc = new pdf();
     const pdfPath = `./${filename}`;
     const stream = fs.createWriteStream(pdfPath);
     doc.pipe(stream);
 
-    doc.fontSize(16).text('Interview Analysis Report', { align: 'center' });
-    doc.moveDown();
+    // PDF Header
+    doc.fontSize(20).font('Helvetica-Bold').text('Interview Analysis Report', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+    doc.moveDown(1);
 
+    // Scores Summary
+    doc.fontSize(14).font('Helvetica-Bold').text('Performance Scores:', { underline: true });
+    doc.moveDown(0.5);
+    
     const scores = [
-      ['Answer Relevance', data.answer_score],
-      ['Pronunciation', data.pronunciation_score],
-      ['Grammar', data.grammar_score],
-      ['Professional Attire', data.attire_score],
-      ['Total Score', data.total_score]
+      ['Answer Relevance', data.answer_score || 'N/A'],
+      ['Pronunciation', data.pronunciation_score || 'N/A'],
+      ['Grammar', data.grammar_score || 'N/A'],
+      ['Professional Attire', data.attire_score || 'N/A'],
+      ['Total Score', data.total_score || 'N/A']
     ];
 
-    doc.fontSize(12).text('Scores Summary:');
     scores.forEach(([label, score]) => {
-      doc.text(`${label}: ${score}/10`);
+      doc.font('Helvetica').text(`${label}: ${score}/10`);
     });
+    doc.moveDown(1);
 
-    doc.moveDown().text(`Question: ${data.question}`);
-    doc.moveDown().text(`Your Answer: ${data.user_answer}`);
-    // doc.moveDown().text(`Ideal Answer: ${data.ideal_answer}`);
-    doc.moveDown().text(`Feedback: ${data.feedback || 'N/A'}`);
+    // Question and Answers
+    doc.fontSize(14).font('Helvetica-Bold').text('Question & Answers:', { underline: true });
+    doc.moveDown(0.5);
+    doc.font('Helvetica').text(`Question: ${data.question || 'N/A'}`);
+    doc.moveDown(0.5);
+    doc.text(`Your Answer: ${data.user_answer || 'N/A'}`);
+    doc.moveDown(0.5);
+    doc.text(`Ideal Answer: ${data.ideal_answer || 'N/A'}`);
+    doc.moveDown(1);
+
+    // Detailed Feedback
+    doc.fontSize(14).font('Helvetica-Bold').text('Detailed Feedback:', { underline: true });
+    doc.moveDown(0.5);
+    doc.font('Helvetica').text(`Content Feedback: ${data.feedback || 'N/A'}`);
+    doc.moveDown(0.5);
+    doc.text(`Pronunciation Feedback: ${data.pronunciation_feedback || 'N/A'}`);
+    doc.moveDown(0.5);
+    doc.text(`Grammar Feedback: ${data.grammar_feedback || 'N/A'}`);
+    doc.moveDown(0.5);
+    doc.text(`Professionalism Feedback: ${data.attire_feedback || 'N/A'}`);
+    doc.moveDown(1);
+
+    // Additional Notes
+    if (data.additional_feedback) {
+      doc.fontSize(14).font('Helvetica-Bold').text('Additional Notes:', { underline: true });
+      doc.moveDown(0.5);
+      doc.font('Helvetica').text(data.additional_feedback);
+    }
 
     doc.end();
 
@@ -374,28 +497,36 @@ app.post('/send-report', async (req, res) => {
     await new Promise(resolve => stream.on('finish', resolve));
 
     // 2. Send Email
-    let transporter = nodemailer.createTransport({
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'hebagassem911@gmail.com',
-        pass: 'smue mdmk uoov zctr' // Use app password
+        user: process.env.EMAIL,
+        pass: process.env.PASSWORD
       }
     });
 
-    let mailOptions = {
+    const mailOptions = {
       from: '"Recruitment Team" <hebagassem911@gmail.com>',
       to: data.email,
       subject: 'Your Interview Analysis Report',
-      text: `Dear Applicant,\n\nPlease find attached your interview report.\n\nBest,\nRecruitment Team`,
       html: `
-        <p>Dear Applicant,</p>
-        <p>Here is your interview analysis report:</p>
-        <p><strong>Question:</strong> ${data.question}</p>
-        <p><strong>Your Answer:</strong> ${data.user_answer}</p>
-        <p><strong>Ideal Answer:</strong> ${data.ideal_answer}</p>
-        <p><strong>Feedback:</strong> ${data.feedback}</p>
-        <p><strong>Formality Feedback:</strong> ${data.attire_feedback}</p>
-        <p>Best regards,<br>Recruitment Team</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Interview Analysis Report</h2>
+          <p>Dear Applicant,</p>
+          
+          <p>Please find attached your detailed interview analysis report.</p>
+          
+          <h3 style="color: #2563eb; margin-top: 20px;">Quick Summary</h3>
+          <ul>
+            <li><strong>Question:</strong> ${data.question || 'N/A'}</li>
+            <li><strong>Total Score:</strong> ${data.total_score || 'N/A'}/10</li>
+          </ul>
+          
+          <h3 style="color: #2563eb; margin-top: 20px;">Key Feedback</h3>
+          <p>${data.feedback || 'No specific feedback provided.'}</p>
+          
+          <p style="margin-top: 30px;">Best regards,<br>Recruitment Team</p>
+        </div>
       `,
       attachments: [{
         filename: 'Interview_Report.pdf',
@@ -404,18 +535,27 @@ app.post('/send-report', async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
+    console.log(`Report sent successfully to: ${data.email}`);
 
     // Delete the temporary PDF
     fs.unlinkSync(pdfPath);
 
-    res.json({ success: true });
+    res.json({ success: true, message: 'Report sent successfully' });
   } catch (err) {
     console.error('Failed to send report:', err);
-    res.status(500).json({ error: 'Failed to generate and send report' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to generate and send report',
+      details: err.message 
+    });
   }
 });
 
 
+
+
+
+// 
 
 // Start server
 const PORT = 5000;

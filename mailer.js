@@ -169,6 +169,32 @@ app.post("/send-schedule-email", async (req, res) => {
   }
 });
 
+app.post("/send-assessment-email", async (req, res) => {
+  const {
+    user_email,
+    user_name,
+    company_name,
+    company_email,
+    link,
+  } = req.body;
+
+  const mailOptions = {
+    from: `"${company_name} HR Team" <${company_email}>`,
+    to: user_email,
+    subject: `Assessment Link Assigned`,
+    text: `Dear ${user_name},\n\nWe are pleased to confirm your assessment with ${company_name}.\n\nDetails are as follows:\n\nLink: ${link}\n\nPlease do not hesitate to reach out if you have any questions.\n\nBest regards,\n${company_name} HR Team\n${company_email}`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Schedule email sent successfully to: ${user_email}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Failed to send schedule email:", err);
+    res.status(500).json({ success: false, message: "Schedule email failed" });
+  }
+});
+
 app.post("/send_recommendation", async (req, res) => {
   const { emails, job_title, job_link, company_name } = req.body;
   console.log(emails, job_title, job_link);
@@ -562,12 +588,12 @@ const PORT = 5000;
 app.listen(PORT, () => console.log(`Mailer server running on port ${PORT}`));
 
 
-// async function startConsumers() {
-//   console.log('Starting listener for email_queue');
-//   await consumeQueue('email_queue');
-// }
+async function startConsumers() {
+  console.log('Starting listener for email_queue');
+  await consumeQueue('email_queue');
+}
 
-// startConsumers().catch((err) => {
-//   console.error('Fatal error:', err);
-//   process.exit(1);
-// });
+startConsumers().catch((err) => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});

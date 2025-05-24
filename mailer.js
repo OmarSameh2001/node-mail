@@ -495,20 +495,20 @@ app.post('/send-report', async (req, res) => {
     doc.moveDown(0.5);
     doc.text(`Your Answer: ${data.user_answer || 'N/A'}`);
     doc.moveDown(0.5);
-    doc.text(`Ideal Answer: ${data.ideal_answer || 'N/A'}`);
-    doc.moveDown(1);
+    // doc.text(`Ideal Answer: ${data.ideal_answer || 'N/A'}`);
+    // doc.moveDown(1);
 
     // Detailed Feedback
     doc.fontSize(14).font('Helvetica-Bold').text('Detailed Feedback:', { underline: true });
     doc.moveDown(0.5);
     doc.font('Helvetica').text(`Content Feedback: ${data.feedback || 'N/A'}`);
     doc.moveDown(0.5);
-    doc.text(`Pronunciation Feedback: ${data.pronunciation_feedback || 'N/A'}`);
-    doc.moveDown(0.5);
-    doc.text(`Grammar Feedback: ${data.grammar_feedback || 'N/A'}`);
-    doc.moveDown(0.5);
-    doc.text(`Professionalism Feedback: ${data.attire_feedback || 'N/A'}`);
-    doc.moveDown(1);
+    // doc.text(`Pronunciation Feedback: ${data.pronunciation_feedback || 'N/A'}`);
+    // doc.moveDown(0.5);
+    // doc.text(`Grammar Feedback: ${data.grammar_feedback || 'N/A'}`);
+    // doc.moveDown(0.5);
+    // doc.text(`Professionalism Feedback: ${data.attire_feedback || 'N/A'}`);
+    // doc.moveDown(1);
 
     // Additional Notes
     if (data.additional_feedback) {
